@@ -51,7 +51,7 @@ class EmotionDataset(Dataset):
 
     # load the audio file
     audio_file = self.files[idx]
-    waveform, sample_rate = torchaudio.load(audio_file)
+    waveform, sample_rate = torchaudio.load(audio_file, backend="soundfile") # load the audio file using soundfile backend
 
     # convert to mono if needed
     if waveform.shape[0] > 1:
@@ -145,12 +145,12 @@ class PositionalEncoding(nn.Module):
         # apply dropout and return
         # output dimensions: [seq_len, batch_size, d_model]
         return self.dropout(x)
-  
-class Winnipeg(nn.Module): 
-    def __init__(self, nmels=128, nemo=8, seq_len=None): 
+
+class Winnipeg(nn.Module):
+    def __init__(self, nmels=128, nemo=8, seq_len=None):
         super().__init__()
 
-        if seq_len is None: 
+        if seq_len is None:
             # total number of audio samples = 16000 * 4 = 64000
             # number of frames = 64000 / 512 = 125 <- 512 is the hop length param used in stft to get the mel spectrogram
             seq_len = 4 * 16000 // 512 # number of time frames in spectrogram
@@ -161,37 +161,44 @@ class Winnipeg(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         self.bn2 = nn.BatchNorm2d(64)
         self.conv3 = nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.bn3 = nn.BatchNorm2d(128) # <- 128 channels outputted 
-        
-        # pooling to reduce layers 
+        self.bn3 = nn.BatchNorm2d(128) # <- 128 channels outputted
+
+        # pooling to reduce layers
         self.pool = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2)) # use 3 pooling operations, each pooling layer reduces size by 2
         # final size reduction is 2^3 = 8
 
-        # find the output size after the conv layers
+        # Define a fixed embedding dimension for the transformer
+        self.embedding_dim = 256
+        
+        # find the output size after the conv layers and add a projection layer
         self.output_dim = 128 * (nmels // 8)
+        self.projection = nn.Linear(self.output_dim, self.embedding_dim)
 
-        # positional encoding
-        self.pos_encoder = PositionalEncoding(self.output_dim, dropout=0.1, max_len=seq_len)
+        # positional encoding - use the embedding_dim here
+        self.pos_encoder = PositionalEncoding(self.embedding_dim, dropout=0.1, max_len=seq_len)
 
         # transformer encoder
         encoder_layers = nn.TransformerEncoderLayer(
-                d_model=self.cnn_output_dim, 
+                d_model=self.embedding_dim,  # Use embedding_dim instead of output_dim
                 nhead=8,
                 dim_feedforward=512,
                 dropout=0.1,
-                batch_first=True
+                batch_first=False  # Change to match positional encoding expectation
             )
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=2)
 
         # fully connected layers -> output classification
-        self.fc1 = nn.Linear(self.cnn_output_dim, 256)
+        self.fc1 = nn.Linear(self.embedding_dim, 256)
         self.dropout = nn.Dropout(0.3)
         self.fc2 = nn.Linear(256, nemo) # number of emotions
 
     def forward(self, x):
+        if x.dim() == 5:
+            x = x.squeeze(1)
+
         # x shape: [batch_size, 1, n_mels, time_frames]
         batch_size = x.size(0)
-        
+
         x = self.conv1(x)
         x = self.bn1(x)
         x = F.relu(x)
@@ -208,24 +215,32 @@ class Winnipeg(nn.Module):
         x = self.pool(x)
 
         # x shape: [batch_size, 128, n_mels/8, time_frames/8]
-        # flatten the output to [batch_size, 128 * (n_mels/8), time_frames/8]
-        x = x.permute(0, 3, 1, 2)
-        x = x.reshape(batch_size, self.output_dim, -1)
-
+        # Reshape properly for the projection layer
+        time_frames = x.size(3)
+        x = x.permute(0, 3, 1, 2)  # [batch_size, time_frames/8, 128, n_mels/8]
+        x = x.reshape(batch_size, time_frames, -1)  # [batch_size, time_frames/8, 128 * (n_mels/8)]
+        
+        # Project to embedding dimension
+        x = self.projection(x)  # [batch_size, time_frames/8, embedding_dim]
+        
+        # Change from batch_first to time_first for positional encoding
+        x = x.transpose(0, 1)  # [time_frames/8, batch_size, embedding_dim]
+        
         # apply positional encoding
         x = self.pos_encoder(x)
-        # x shape: [batch_size, seq_len, d_model]
+        
         # apply transformer encoder
         x = self.transformer_encoder(x)
-        # x shape: [batch_size, seq_len, d_model]
-        # take the mean of the sequence dimension
-        x = x.mean(dim=1)
+        
+        # Change back to batch_first and take the mean of the sequence dimension
+        x = x.transpose(0, 1)  # [batch_size, time_frames/8, embedding_dim]
+        x = x.mean(dim=1)  # [batch_size, embedding_dim]
 
-        # x shape: [batch_size, d_model]
+        # Final classification
         x = self.fc1(x)
         x = F.relu(x)
         x = self.dropout(x)
-        x - self.fc2(x)
-        # x shape: [batch_size, num_classes]
+        x = self.fc2(x)  # Fixed this line - you had 'x - self.fc2(x)' which is a typo
+        
         return x
 #----------------------------------------------------------------------------------------------------------------
