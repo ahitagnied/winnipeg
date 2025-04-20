@@ -20,7 +20,7 @@ def inference():
     test_path = 'files/data/Test'
 
     # path to saved model
-    model_path = 'best_emotion_model.pth'
+    model_path = 'model.pth'
 
     # get class mapping from training
     # this matches what was shown in your notebook
@@ -84,7 +84,7 @@ def inference():
     df_results = pd.DataFrame(results)
 
     # save to csv
-    df_results.to_csv('submission.csv', index=False)
+    df_results.to_csv('results/submission.csv', index=False)
     print(f"predictions saved to submission.csv")
 
     return df_results

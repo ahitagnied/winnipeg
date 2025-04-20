@@ -122,7 +122,7 @@ def train():
         # save best model
         if test_accuracy > best_accuracy:
             best_accuracy = test_accuracy
-            torch.save(model.state_dict(), 'best_emotion_model.pth')
+            torch.save(model.state_dict(), 'model.pth')
             print(f"model saved with accuracy: {best_accuracy:.2f}%")
 
         print(f"epoch {epoch+1}/{EPOCHS}: "
