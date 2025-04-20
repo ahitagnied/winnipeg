@@ -1,5 +1,7 @@
 This project implements a deep learning system for classifying audio recordings into different emotional categories (Angry, Disgusted, Fearful, Happy, Neutral, Sad, Surprised). The system analyzes speech audio and predicts the emotional state of the speaker based on acoustic patterns.
 
+The CNN+GRU model achieved an accuracy of 73.63% which is close to human performance in classifying such datasets (74% acc/ to Pentari et al.). [1st in Kaggle Leaderboard as of 19th April, 2025]
+
 <img src='assets/loss.png' width:300px>
 
 ### 🐉 Model Architecture
@@ -45,3 +47,30 @@ You can install them using:
 
 ```bash
 pip install torch librosa numpy pandas tqdm
+```
+### 🏺 References
+
+```bibtex
+@article{Pentari2024graphEmotion,
+  title={Speech emotion recognition via graph-based representations},
+  author={Pentari, A. and Kafentzis, G. and Tsiknakis, M.},
+  journal={Scientific Reports},
+  volume={14},
+  pages={4484},
+  year={2024},
+  publisher={Nature Publishing Group},
+  doi={10.1038/s41598-024-52989-2},
+  url={https://doi.org/10.1038/s41598-024-52989-2}
+}
+```
+```bibtex
+@misc{Chung2014GRUvsLSTM,
+  title={Empirical Evaluation of Gated Recurrent Neural Networks on Sequence Modeling},
+  author={Chung, Junyoung and Gulcehre, Caglar and Cho, KyungHyun and Bengio, Yoshua},
+  note={Presented at NIPS 2014 Deep Learning and Representation Learning Workshop},
+  year={2014},
+  howpublished={\url{https://doi.org/10.48550/arXiv.1412.3555}},
+  archivePrefix={arXiv},
+  eprint={1412.3555}
+}
+```
