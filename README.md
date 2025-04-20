@@ -23,9 +23,8 @@ Training employs early stopping (patience=10) with ReduceLROnPlateau scheduling 
 
 Pre-trained model weights are loaded from 'best_emotion_model.pth'. Test audio undergoes identical preprocessing (MFCC+Δ+Δ²). Emotion predictions are generated in a single forward pass and exported to submission.csv with [filename, emotion] format.
 
+### 📁 Project Structure
 ```bash
-# 📁 Project Structure
-
 config.py      # Configuration parameters for audio processing and model training  
 prepare.py     # Data preparation and feature extraction functions  
 model.py       # Model architecture and dataset class definitions  
