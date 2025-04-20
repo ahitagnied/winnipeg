@@ -5,9 +5,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
-from prepare import load_data
-from gru import EmotionCNNGRU, EmotionDataset
-from config import BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, EPOCHS, PATIENCE
+from prepare import *
+from gru import *
+from config import *
 
 device = "cpu"
 if torch.cuda.is_available():

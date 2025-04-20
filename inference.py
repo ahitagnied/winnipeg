@@ -2,9 +2,9 @@ import os
 import torch
 import pandas as pd
 from tqdm import tqdm
-from cnngru import EmotionCNNGRU
-from config import N_MFCC
-from prepare import extract_features
+from gru import EmotionCNNGRU
+from config import *
+from prepare import *
 
 device = "cpu"
 if torch.cuda.is_available():

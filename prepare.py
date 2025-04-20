@@ -4,7 +4,7 @@ import librosa
 import torch
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
-from config import SAMPLE_RATE, MAX_LENGTH, N_FFT, N_MFCC, HOP_LENGTH, DATA_PATH
+from config import *
 
 # set random seeds for reproducibility
 np.random.seed(42)

@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset
-from config import DROPOUT_RATE
+from config import *
 
 class EmotionDataset(Dataset):
     """dataset for emotion audio classification"""
