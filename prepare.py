@@ -20,6 +20,32 @@ elif torch.backends.mps.is_available():
     device = "mps"
 print(f"using device: {device}")
 
+def augment_audio(audio, sample_rate=SAMPLE_RATE):
+    """apply random augmentations to audio"""
+    augmentations = []
+    
+    # time stretch (speed up or slow down)
+    if np.random.random() > 0.5:
+        rate = np.random.uniform(0.8, 1.2)
+        augmentations.append(lambda x: librosa.effects.time_stretch(x, rate=rate))
+    
+    # pitch shift
+    if np.random.random() > 0.5:
+        n_steps = np.random.uniform(-3, 3)
+        augmentations.append(lambda x: librosa.effects.pitch_shift(x, sr=sample_rate, n_steps=n_steps))
+    
+    # add random noise
+    if np.random.random() > 0.5:
+        noise_factor = np.random.uniform(0.005, 0.02)
+        augmentations.append(lambda x: x + noise_factor * np.random.randn(len(x)))
+    
+    # apply augmentations in random order
+    np.random.shuffle(augmentations)
+    for aug in augmentations:
+        audio = aug(audio)
+    
+    return audio
+
 def extract_features(file_path):
     """extract mfcc features from an audio file
 
@@ -57,50 +83,57 @@ def extract_features(file_path):
 
 def load_data():
     """load audio files and extract features
-
     returns:
         features and labels
     """
     features = []
     labels = []
-
     print("loading data and extracting features...")
-
+    
     # get all emotion folders (exclude test and ipynb_checkpoints folders)
     emotion_folders = [f for f in os.listdir(DATA_PATH)
                       if os.path.isdir(os.path.join(DATA_PATH, f))
                       and f != "Test"
                       and f != ".ipynb_checkpoints"]
-
+    
+    # track class counts for weighting
+    class_counts = []
+    
     # loop through each emotion folder
     for emotion in emotion_folders:
         emotion_path = os.path.join(DATA_PATH, emotion)
-
         # get all audio files
         audio_files = [f for f in os.listdir(emotion_path) if f.endswith('.wav')]
-
         print(f"processing {len(audio_files)} files for emotion: {emotion}")
-
+        class_counts.append(len(audio_files))
+        
         # loop through each audio file
         for audio_file in tqdm(audio_files):
             file_path = os.path.join(emotion_path, audio_file)
-
             # extract features
             mfcc = extract_features(file_path)
-
             if mfcc is not None:
                 features.append(mfcc)
                 labels.append(emotion)
-
+    
     # convert to numpy arrays
     features = np.array(features)
     labels = np.array(labels)
-
+    
     # encode labels
     label_encoder = LabelEncoder()
     encoded_labels = label_encoder.fit_transform(labels)
-
+    
+    # calculate weights for loss function
+    class_weights = 1.0 / torch.tensor(class_counts, dtype=torch.float)
+    class_weights = class_weights / class_weights.sum() * len(class_weights)
+    
     print(f"data loaded: {features.shape[0]} samples, {len(label_encoder.classes_)} emotions")
     print(f"emotions: {label_encoder.classes_}")
-
-    return features, encoded_labels, label_encoder.classes_
+    print(f"class counts: {class_counts}")
+    print(f"class weights: {class_weights}")
+    
+    # at this point don't augment the actual dataset, just return the weights
+    # we'll use weighted sampling in the DataLoader instead
+    
+    return features, encoded_labels, label_encoder.classes_, class_weights.to(device)
