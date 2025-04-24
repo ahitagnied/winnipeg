@@ -12,7 +12,6 @@ if torch.cuda.is_available():
 elif torch.backends.mps.is_available():
     device = "mps"
 
-
 # load saved model and make predictions
 def inference():
     """load saved model and generate predictions for test data"""
@@ -20,7 +19,7 @@ def inference():
     test_path = 'files/data/Test'
 
     # path to saved model
-    model_path = 'model.pth'
+    model_path = 'results/model.pth'
 
     # get class mapping from training
     # this matches what was shown in your notebook

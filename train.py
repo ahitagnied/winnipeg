@@ -17,12 +17,12 @@ elif torch.backends.mps.is_available():
 
 def train():
     """main training function"""
-    # load data
-    features, labels, classes = load_data()
-
+    
+    features, labels, classes, class_weights = load_data()
+    
     # split data
     X_train, X_test, y_train, y_test = train_test_split(
-        features, labels, test_size=0.2, random_state=42, stratify=labels
+        features, labels, test_size=0.1, random_state=42, stratify=labels
     )
 
     print(f"training set: {X_train.shape[0]} samples")
@@ -32,7 +32,17 @@ def train():
     train_dataset = EmotionDataset(X_train, y_train)
     test_dataset = EmotionDataset(X_test, y_test)
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    # sampler
+    class_sample_count = np.bincount(y_train)
+    weights = 1.0 / class_sample_count
+    samples_weights = weights[y_train]
+    sampler = torch.utils.data.WeightedRandomSampler(
+        weights=samples_weights,
+        num_samples=len(samples_weights),
+        replacement=True
+    )
+
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=sampler)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
     # initialize model
@@ -44,7 +54,7 @@ def train():
 
     # learning rate scheduler
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5, verbose=True
+      optimizer, mode='min', factor=0.4, patience=2, verbose=True, min_lr=1e-9
     )
 
     # early stopping setup
