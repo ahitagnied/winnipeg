@@ -10,6 +10,8 @@ The CNN+GRU model achieved an accuracy of 73.63% which is close to human perform
 
 The model uses a hybrid CNN+GRU architecture:
 
+<img src='assets/model.png' width:50px>
+
 - Convolutional Neural Network (CNN): Extracts spectral features from the audio MFCC representations
 - Gated Recurrent Unit (GRU): Captures temporal dynamics in the audio data
 - Bidirectional processing: Analyzes the audio sequence in both forward and backward directions
